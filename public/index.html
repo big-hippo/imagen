@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Workbench</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">AI Image Studio</p>
+        <h1>Image Workbench</h1>
+        <p class="subcopy">配置兼容图像接口，自动识别模型，然后进入生图或改图工作台。</p>
+      </div>
+      <button class="ghost-button" type="button" id="themeToggle">切换主题</button>
+    </header>
+
+    <section class="hero-grid">
+      <div class="hero-copy card">
+        <h2>一个轻量、直接、可自己部署的生图工作台</h2>
+        <p>支持文本生图、参考图改图、模型自动识别、任务轮询、结果下载和本地历史记录。</p>
+        <div class="hero-points">
+          <span>自动识别图像模型</span>
+          <span>兼容常见 OpenAI 风格接口</span>
+          <span>零依赖 Node 代理后端</span>
+        </div>
+      </div>
+
+      <form class="card config-card" id="configForm">
+        <div class="card-head">
+          <div>
+            <h3>连接配置</h3>
+            <p>配置只保存在当前浏览器。</p>
+          </div>
+          <span class="badge badge-pending" id="configBadge">未配置</span>
+        </div>
+
+        <label class="field">
+          <span>API Base URL</span>
+          <input type="url" id="baseUrl" placeholder="https://example.com" required>
+        </label>
+
+        <label class="field">
+          <span>API Key</span>
+          <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" required>
+        </label>
+
+        <label class="field">
+          <span>图像模型</span>
+          <button class="ghost-button block-button" type="button" id="detectModelButton">识别模型</button>
+        </label>
+
+        <div class="model-panel" id="modelPanel" hidden>
+          <label class="field">
+            <span>已识别模型</span>
+            <input type="text" id="model" value="" readonly>
+          </label>
+          <div class="model-list" id="modelList" hidden></div>
+          <p class="hint" id="modelStatus"></p>
+        </div>
+        <div class="error-box" id="configError"></div>
+        <button class="primary-button" type="submit" id="enterStudioButton" disabled>进入工作台</button>
+      </form>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="/script.js"></script>
+</body>
+</html>

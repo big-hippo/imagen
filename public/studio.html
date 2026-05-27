@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Workbench Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">AI Image Studio</p>
+        <h1>Image Workbench</h1>
+        <p class="subcopy">文本生图、参考图改图、任务轮询与结果下载。</p>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-button" type="button" id="backToConfig">连接配置</button>
+        <button class="ghost-button" type="button" id="themeToggle">切换主题</button>
+      </div>
+    </header>
+
+    <section class="studio-layout" id="studioView">
+      <aside class="card side-panel">
+        <div class="mode-tabs">
+          <button class="tab-button active" type="button" data-mode="generate">生图</button>
+          <button class="tab-button" type="button" data-mode="edit">改图</button>
+        </div>
+
+        <label class="field">
+          <span>提示词</span>
+          <textarea id="prompt" placeholder="例如：极简香水海报，黑曜石台面，金属高光，商业摄影，超清细节"></textarea>
+        </label>
+
+        <div class="chips">
+          <button class="chip" type="button" data-prompt="商业摄影，柔和棚拍光，细腻材质，留白构图">商业摄影</button>
+          <button class="chip" type="button" data-prompt="电影感，真实质感，层次分明，轻微颗粒">电影感</button>
+          <button class="chip" type="button" data-prompt="保留主体结构，提高材质和光影层次">质感改图</button>
+          <button class="chip" type="button" data-prompt="干净背景，适合社媒广告图，突出主体">广告图</button>
+        </div>
+
+        <div class="reference-box">
+          <div class="card-head compact-head">
+            <div>
+              <h3>参考图</h3>
+              <p id="referenceHint">改图模式会把参考图一并发送到上游接口。</p>
+            </div>
+            <button class="mini-button" type="button" id="clearRefsButton" hidden>清空</button>
+          </div>
+
+          <label class="dropzone" id="dropzone">
+            <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp" multiple>
+            <span>拖入或选择 PNG / JPG / WEBP，最多 8 张</span>
+          </label>
+
+          <div class="thumb-grid" id="thumbGrid"></div>
+        </div>
+      </aside>
+
+      <section class="card preview-panel">
+        <div class="preview-head">
+          <div>
+            <h2 id="workspaceTitle">文本生图</h2>
+            <p id="endpointLabel">将调用 /images/generations</p>
+          </div>
+          <div class="status-pill" id="connectionPill">
+            <span class="status-dot"></span>
+            <strong id="connectionName">等待配置</strong>
+          </div>
+        </div>
+
+        <div class="progress-box" id="jobOverlay" hidden>
+          <div class="progress-copy">
+            <strong id="progressStage">准备请求</strong>
+            <span id="elapsedTime">00:00</span>
+          </div>
+          <div class="progress-track">
+            <span id="progressBar"></span>
+          </div>
+          <div class="progress-meta">
+            <span id="jobPercent">0%</span>
+            <span id="modeStatus">自动端点：生图</span>
+          </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <strong>准备生成第一张图</strong>
+          <span>写提示词；如果要改图，先上传参考图。结果会显示在这里。</span>
+        </div>
+
+        <div class="result-grid" id="resultGrid"></div>
+      </section>
+
+      <aside class="card settings-panel">
+        <div class="settings-group">
+          <h3>参数</h3>
+
+          <label class="field">
+            <span>画幅</span>
+            <select id="size">
+              <option value="1024x1024">1K 方图 · 1024 x 1024</option>
+              <option value="1536x1024">横图 · 1536 x 1024</option>
+              <option value="1024x1536">竖图 · 1024 x 1536</option>
+              <option value="2048x2048">2K 方图 · 2048 x 2048</option>
+              <option value="custom">自定义尺寸</option>
+            </select>
+          </label>
+
+          <label class="field" id="customSizeWrap" hidden>
+            <span>自定义尺寸</span>
+            <input type="text" id="customSize" placeholder="例如 1280x720">
+          </label>
+
+          <label class="field">
+            <span>张数</span>
+            <select id="imageCount">
+              <option value="1">1 张</option>
+              <option value="2">2 张</option>
+              <option value="3">3 张</option>
+              <option value="4">4 张</option>
+              <option value="5">5 张</option>
+              <option value="6">6 张</option>
+              <option value="7">7 张</option>
+              <option value="8">8 张</option>
+              <option value="9">9 张</option>
+              <option value="10">10 张</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="settings-group">
+          <h3>当前接入</h3>
+          <div class="summary-list">
+            <div class="summary-row"><span>Base URL</span><strong id="summaryBase">-</strong></div>
+            <div class="summary-row"><span>模型</span><strong id="summaryModel">-</strong></div>
+            <div class="summary-row"><span>Key</span><strong id="summaryKey">-</strong></div>
+          </div>
+          <button class="ghost-button block-button" type="button" id="editKeyButton">修改 Key</button>
+        </div>
+
+        <div class="settings-group">
+          <button class="primary-button" type="button" id="runButton">生成图像</button>
+          <button class="ghost-button block-button" type="button" id="clearButton">清空画布</button>
+          <div class="error-box" id="studioError"></div>
+        </div>
+
+        <div class="settings-group">
+          <div class="card-head compact-head">
+            <div>
+              <h3>成功记录</h3>
+              <p>只保存在当前浏览器。</p>
+            </div>
+            <button class="mini-button" type="button" id="clearHistoryButton" hidden>清空</button>
+          </div>
+          <div class="history-list" id="successHistoryList"></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="/script.js"></script>
+</body>
+</html>
