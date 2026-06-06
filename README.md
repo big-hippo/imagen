@@ -23,6 +23,8 @@ npm start
 
 By default the server listens on `127.0.0.1:3000`.
 
+The default upstream image request timeout is `300000` ms (`UPSTREAM_IMAGE_TIMEOUT_MS`).
+
 ## Project Structure
 
 ```text

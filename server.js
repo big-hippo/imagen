@@ -17,7 +17,9 @@ const IMAGE_JOB_REQUEST_LIMIT_BYTES = 32 * 1024 * 1024;
 const MODELS_RESPONSE_LIMIT_BYTES = 2 * 1024 * 1024;
 const IMAGE_RESPONSE_LIMIT_BYTES = 64 * 1024 * 1024;
 const REMOTE_IMAGE_LIMIT_BYTES = 25 * 1024 * 1024;
-const UPSTREAM_REQUEST_TIMEOUT_MS = 30 * 1000;
+const UPSTREAM_MODELS_TIMEOUT_MS = readPositiveIntEnv("UPSTREAM_MODELS_TIMEOUT_MS", 30 * 1000);
+const UPSTREAM_IMAGE_TIMEOUT_MS = readPositiveIntEnv("UPSTREAM_IMAGE_TIMEOUT_MS", 300 * 1000);
+const UPSTREAM_DOWNLOAD_TIMEOUT_MS = readPositiveIntEnv("UPSTREAM_DOWNLOAD_TIMEOUT_MS", 30 * 1000);
 const jobs = new Map();
 
 const MIME_TYPES = {
@@ -192,7 +194,7 @@ async function detectModels(input) {
           Authorization: `Bearer ${apiKey}`,
           Accept: "application/json",
         },
-        timeoutMs: UPSTREAM_REQUEST_TIMEOUT_MS,
+        timeoutMs: UPSTREAM_MODELS_TIMEOUT_MS,
         maxBytes: MODELS_RESPONSE_LIMIT_BYTES,
       });
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -205,7 +207,7 @@ async function detectModels(input) {
         source: endpoint,
       };
     } catch (error) {
-      lastError = error;
+      lastError = new Error(`${endpoint} -> ${error?.message || error || "未知错误"}`);
     }
   }
 
@@ -395,7 +397,7 @@ async function dispatchUpstream(input) {
               Authorization: `Bearer ${input.apiKey}`,
               Accept: "application/json",
             },
-            timeoutMs: UPSTREAM_REQUEST_TIMEOUT_MS,
+            timeoutMs: UPSTREAM_IMAGE_TIMEOUT_MS,
             maxBytes: IMAGE_RESPONSE_LIMIT_BYTES,
           }, buildEditFormData(input))
         : await requestJson(endpoint, {
@@ -405,7 +407,7 @@ async function dispatchUpstream(input) {
               Accept: "application/json",
               "Content-Type": "application/json",
             },
-            timeoutMs: UPSTREAM_REQUEST_TIMEOUT_MS,
+            timeoutMs: UPSTREAM_IMAGE_TIMEOUT_MS,
             maxBytes: IMAGE_RESPONSE_LIMIT_BYTES,
           }, buildGenerationBody(input));
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -414,7 +416,7 @@ async function dispatchUpstream(input) {
       }
       return response.data;
     } catch (error) {
-      lastError = error;
+      lastError = new Error(`${endpoint} -> ${error?.message || error || "未知错误"}`);
     }
   }
 
@@ -579,7 +581,7 @@ async function downloadRemoteImage(url) {
     headers: {
       Accept: "image/*,*/*;q=0.8",
     },
-    timeoutMs: UPSTREAM_REQUEST_TIMEOUT_MS,
+    timeoutMs: UPSTREAM_DOWNLOAD_TIMEOUT_MS,
     maxBytes: REMOTE_IMAGE_LIMIT_BYTES,
   });
   if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -814,7 +816,7 @@ function requestViaNode(target, options, body, meta = {}) {
         });
       });
     });
-    request.setTimeout(meta.timeoutMs || UPSTREAM_REQUEST_TIMEOUT_MS, () => {
+    request.setTimeout(meta.timeoutMs ?? UPSTREAM_IMAGE_TIMEOUT_MS, () => {
       request.destroy(badGateway("上游请求超时"));
     });
     request.on("error", finishWithError);
@@ -870,7 +872,7 @@ function proxyViaNodeRequest(res, target, asDownload, filename) {
       });
       response.on("error", finishWithError);
     });
-    upstream.setTimeout(UPSTREAM_REQUEST_TIMEOUT_MS, () => {
+    upstream.setTimeout(UPSTREAM_DOWNLOAD_TIMEOUT_MS, () => {
       upstream.destroy(badGateway("图片代理超时"));
     });
     upstream.on("error", finishWithError);
@@ -918,4 +920,9 @@ function badGateway(message) {
   error.statusCode = 502;
   error.expose = true;
   return error;
+}
+
+function readPositiveIntEnv(name, fallback) {
+  const value = Number.parseInt(String(process.env[name] || ""), 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
